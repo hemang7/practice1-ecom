@@ -1,13 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/components/auth-provider';
+import { canAddToCart } from '@/lib/stock';
 import type { CartItem, Product } from '@/lib/types';
 
 type CartContextValue = {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: Product) => boolean;
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
+  getCartQuantity: (productId: string) => number;
   clearCart: () => void;
   itemCount: number;
   subtotal: number;
@@ -20,54 +23,121 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = 'simple-shop-cart';
 
+function clampQuantity(product: Product, quantity: number) {
+  return Math.min(Math.max(0, quantity), product.stockQuantity);
+}
+
+function parseStoredCart(raw: string): CartItem[] {
+  const parsed = JSON.parse(raw) as CartItem[];
+  return parsed.map((item) => ({
+    ...item,
+    stockQuantity: item.stockQuantity ?? 0,
+  }));
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { user, isReady: isAuthReady } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const previousUserIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        setItems(JSON.parse(raw) as CartItem[]);
-      } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-    setIsReady(true);
+  const clearCart = useCallback(() => {
+    setItems([]);
+    window.localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, isReady]);
+    if (!isAuthReady) {
+      return;
+    }
 
-  const addItem = (product: Product) => {
-    setItems((current) => {
-      const existing = current.find((item) => item.id === product.id);
-      if (existing) {
-        return current.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
-        );
+    const currentUserId = user?.id ?? null;
+    const previousUserId = previousUserIdRef.current;
+
+    if (!currentUserId) {
+      setItems([]);
+      window.localStorage.removeItem(STORAGE_KEY);
+      previousUserIdRef.current = null;
+      setIsReady(true);
+      return;
+    }
+
+    if (previousUserId !== currentUserId) {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          setItems(parseStoredCart(raw));
+        } catch {
+          window.localStorage.removeItem(STORAGE_KEY);
+          setItems([]);
+        }
+      } else {
+        setItems([]);
       }
-      return [...current, { ...product, quantity: 1 }];
-    });
-  };
+    }
+
+    previousUserIdRef.current = currentUserId;
+    setIsReady(true);
+  }, [isAuthReady, user?.id]);
+
+  useEffect(() => {
+    if (!isReady || !isAuthReady || !user) {
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items, isReady, isAuthReady, user]);
+
+  const getCartQuantity = useCallback(
+    (productId: string) => items.find((item) => item.id === productId)?.quantity ?? 0,
+    [items],
+  );
+
+  const addItem = useCallback(
+    (product: Product) => {
+      const currentQuantity = getCartQuantity(product.id);
+      if (!canAddToCart(product, currentQuantity)) {
+        return false;
+      }
+
+      setItems((current) => {
+        const existing = current.find((item) => item.id === product.id);
+        if (existing) {
+          return current.map((item) =>
+            item.id === product.id
+              ? { ...item, ...product, quantity: item.quantity + 1 }
+              : item,
+          );
+        }
+        return [...current, { ...product, quantity: 1 }];
+      });
+
+      return true;
+    },
+    [getCartQuantity],
+  );
 
   const removeItem = (productId: string) => {
     setItems((current) => current.filter((item) => item.id !== productId));
   };
 
   const setQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId);
-      return;
-    }
-    setItems((current) =>
-      current.map((item) => (item.id === productId ? { ...item, quantity } : item)),
-    );
-  };
+    setItems((current) => {
+      const item = current.find((entry) => entry.id === productId);
+      if (!item) {
+        return current;
+      }
 
-  const clearCart = () => setItems([]);
+      const nextQuantity = clampQuantity(item, quantity);
+      if (nextQuantity <= 0) {
+        return current.filter((entry) => entry.id !== productId);
+      }
+
+      return current.map((entry) =>
+        entry.id === productId ? { ...entry, quantity: nextQuantity } : entry,
+      );
+    });
+  };
 
   const itemCount = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
@@ -86,6 +156,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem,
     removeItem,
     setQuantity,
+    getCartQuantity,
     clearCart,
     itemCount,
     subtotal,

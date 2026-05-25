@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/money';
 
 export function CartItemRow({ item }: { item: CartItem }) {
   const { setQuantity, removeItem } = useCart();
+  const maxQuantity = item.stockQuantity;
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -26,6 +27,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
           <input
             type="number"
             min={1}
+            max={maxQuantity}
             value={item.quantity}
             onChange={(e) => setQuantity(item.id, Number(e.target.value))}
             className="w-20 rounded-xl border border-slate-300 px-3 py-2"

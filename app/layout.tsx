@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { AuthProvider } from '@/components/auth-provider';
 import { CartProvider } from '@/components/cart-context';
 import { Navbar } from '@/components/navbar';
 
@@ -19,12 +20,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CartProvider>
-          <div className="min-h-screen bg-slate-50 text-slate-900">
-            <Navbar />
-            <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
-          </div>
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <div className="min-h-screen bg-slate-50 text-slate-900">
+              <Navbar />
+              <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
+            </div>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

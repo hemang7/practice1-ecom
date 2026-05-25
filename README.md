@@ -8,9 +8,13 @@ A simple full-stack ecommerce app built with:
 
 ## Features
 
-- Product listing page
+- Product listing page with skeleton loading states
+- Product detail pages at `/products/[id]`
+- Stock-aware cart (cannot exceed available inventory)
 - Shopping cart with add/remove/update quantity
 - Order summary page
+- Supabase email/password authentication (`/login`, `/signup`)
+- Protected order history page (`/orders`)
 - Route handlers for products and orders
 - Cart state persisted in `localStorage`
 
@@ -21,6 +25,8 @@ A simple full-stack ecommerce app built with:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 3. Run `supabase/schema.sql` in the Supabase SQL editor to create the `products` and `orders` tables and seed sample products.
+4. In the Supabase dashboard, enable **Email** provider under Authentication → Providers.
+5. Add `OPENAI_API_KEY` to `.env.local` for AI product recommendations on product detail pages.
 
 ## Run it
 

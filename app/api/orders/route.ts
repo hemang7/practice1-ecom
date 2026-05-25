@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import type { CartItem, Order } from '@/lib/types';
 
 type OrderRow = {
@@ -34,9 +34,19 @@ function mapOrder(row: OrderRow): Order {
 }
 
 export async function GET() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return Response.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
   const { data, error } = await supabase
     .from('orders')
     .select('id, customer_name, email, shipping_address, total, items, created_at')
+    .eq('email', user.email)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -48,6 +58,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const supabase = createClient();
   const body = (await request.json()) as Pick<Order, 'items' | 'customer'>;
 
   if (!body?.items?.length) {

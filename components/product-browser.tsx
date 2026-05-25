@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ProductCard } from '@/components/product-card';
+import { ProductGridSkeleton } from '@/components/skeleton';
 import type { Product } from '@/lib/types';
 
 export function ProductBrowser() {
@@ -67,8 +68,12 @@ export function ProductBrowser() {
 
   if (isLoading) {
     return (
-      <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">
-        Loading products...
+      <section>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold tracking-tight">Products</h2>
+          <p className="text-sm text-slate-600">Loading catalog...</p>
+        </div>
+        <ProductGridSkeleton />
       </section>
     );
   }
