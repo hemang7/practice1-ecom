@@ -1,21 +1,18 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/cart-context';
 import { formatMoney } from '@/lib/money';
 
 export default function OrderSummaryPage() {
-  const router = useRouter();
-  const { items, subtotal, shipping, tax, total, clearCart, isReady } = useCart();
+  const { items, subtotal, shipping, tax, total, isReady } = useCart();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  const placeOrder = async (event: FormEvent) => {
+  const proceedToPayment = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
 
@@ -31,26 +28,24 @@ export default function OrderSummaryPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer: { name, email, address },
           items,
+          customer: { name, email, address },
         }),
       });
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(payload?.message ?? 'Failed to place order.');
+        throw new Error(payload?.message ?? 'Failed to start checkout.');
       }
 
-      const data = (await response.json()) as { orderId: string };
-      setOrderId(data.orderId);
-      clearCart();
+      const data = (await response.json()) as { url: string };
+      window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -64,43 +59,32 @@ export default function OrderSummaryPage() {
       <section className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Order summary</h1>
-          <p className="mt-2 text-slate-600">Check your items and submit your order.</p>
+          <p className="mt-2 text-slate-600">Review your items and proceed to secure payment.</p>
         </div>
 
-        {orderId ? (
-          <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-            <p className="font-semibold text-green-900">Order placed successfully.</p>
-            <p className="mt-2 text-sm text-green-800">Order ID: {orderId}</p>
-            <button
-              type="button"
-              onClick={() => router.push('/')}
-              className="mt-4 rounded-xl bg-green-700 px-4 py-3 text-sm font-semibold text-white"
-            >
-              Continue shopping
-            </button>
+        <form
+          onSubmit={proceedToPayment}
+          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Full name" value={name} onChange={setName} placeholder="Jane Doe" />
+            <Field label="Email" value={email} onChange={setEmail} placeholder="jane@example.com" type="email" />
           </div>
-        ) : (
-          <form onSubmit={placeOrder} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name" value={name} onChange={setName} placeholder="Jane Doe" />
-              <Field label="Email" value={email} onChange={setEmail} placeholder="jane@example.com" type="email" />
-            </div>
-            <Field
-              label="Shipping address"
-              value={address}
-              onChange={setAddress}
-              placeholder="123 Main St, Bloomington, IN"
-            />
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? 'Placing order...' : 'Place order'}
-            </button>
-          </form>
-        )}
+          <Field
+            label="Shipping address"
+            value={address}
+            onChange={setAddress}
+            placeholder="123 Main St, Bloomington, IN"
+          />
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? 'Redirecting to payment...' : 'Proceed to Payment'}
+          </button>
+        </form>
       </section>
 
       <aside className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

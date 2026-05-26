@@ -27,6 +27,7 @@ A simple full-stack ecommerce app built with:
 3. Run `supabase/schema.sql` in the Supabase SQL editor to create the `products` and `orders` tables and seed sample products.
 4. In the Supabase dashboard, enable **Email** provider under Authentication → Providers.
 5. Add `OPENAI_API_KEY` to `.env.local` for AI product recommendations on product detail pages.
+6. Add Stripe keys (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`) and `NEXT_PUBLIC_APP_URL` for checkout.
 
 ## Run it
 
