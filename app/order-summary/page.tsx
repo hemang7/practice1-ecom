@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useAuth } from '@/components/auth-provider';
 import { useCart } from '@/components/cart-context';
 import { formatMoney } from '@/lib/money';
 
 export default function OrderSummaryPage() {
+  const router = useRouter();
+  const { user, isReady: isAuthReady } = useAuth();
   const { items, subtotal, shipping, tax, total, isReady } = useCart();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -12,9 +17,27 @@ export default function OrderSummaryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (isAuthReady && !user) {
+      router.replace('/login?redirect=/order-summary');
+    }
+  }, [isAuthReady, user, router]);
+
   const proceedToPayment = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
+
+    if (!user) {
+      setError('Please log in to complete your purchase.');
+      router.replace('/login?redirect=/order-summary');
+      return;
+    }
 
     if (!items.length) {
       setError('Your cart is empty.');
@@ -50,8 +73,23 @@ export default function OrderSummaryPage() {
     }
   };
 
-  if (!isReady) {
+  if (!isReady || !isAuthReady) {
     return <div className="rounded-2xl bg-white p-6 shadow-sm">Loading order summary...</div>;
+  }
+
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p className="text-lg font-semibold text-slate-900">Please log in to complete your purchase</p>
+        <p className="mt-2 text-sm text-slate-600">Redirecting you to the login page...</p>
+        <Link
+          href="/login?redirect=/order-summary"
+          className="mt-6 inline-block rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+        >
+          Log in
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -79,7 +117,7 @@ export default function OrderSummaryPage() {
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !user}
             className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? 'Redirecting to payment...' : 'Proceed to Payment'}

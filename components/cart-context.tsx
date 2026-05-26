@@ -46,47 +46,40 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  // Load cart from localStorage on startup (regardless of auth state).
   useEffect(() => {
-    if (!isAuthReady) {
-      return;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        setItems(parseStoredCart(raw));
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
     }
+    setIsReady(true);
+  }, []);
+
+  // Persist cart for all users (including guests) so it survives redirects.
+  useEffect(() => {
+    if (!isReady) return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items, isReady]);
+
+  // Only clear cart on logout (when auth transitions from user -> null).
+  useEffect(() => {
+    if (!isAuthReady) return;
 
     const currentUserId = user?.id ?? null;
     const previousUserId = previousUserIdRef.current;
 
-    if (!currentUserId) {
-      setItems([]);
-      window.localStorage.removeItem(STORAGE_KEY);
-      previousUserIdRef.current = null;
-      setIsReady(true);
-      return;
-    }
-
-    if (previousUserId !== currentUserId) {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        try {
-          setItems(parseStoredCart(raw));
-        } catch {
-          window.localStorage.removeItem(STORAGE_KEY);
-          setItems([]);
-        }
-      } else {
-        setItems([]);
-      }
+    if (previousUserId && !currentUserId) {
+      clearCart();
     }
 
     previousUserIdRef.current = currentUserId;
-    setIsReady(true);
-  }, [isAuthReady, user?.id]);
+  }, [isAuthReady, user?.id, clearCart]);
 
-  useEffect(() => {
-    if (!isReady || !isAuthReady || !user) {
-      return;
-    }
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, isReady, isAuthReady, user]);
+  // Note: we intentionally do not clear the cart when a user logs in.
 
   const getCartQuantity = useCallback(
     (productId: string) => items.find((item) => item.id === productId)?.quantity ?? 0,
