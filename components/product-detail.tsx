@@ -4,8 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { ProductRecommendations } from '@/components/product-recommendations';
+import { StockStatus } from '@/components/stock-status';
 import { formatMoney } from '@/lib/money';
-import { isOutOfStock } from '@/lib/stock';
 import type { Product } from '@/lib/types';
 
 export function ProductDetail({ product }: { product: Product }) {
@@ -26,11 +26,7 @@ export function ProductDetail({ product }: { product: Product }) {
           </span>
           <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
           <p className="text-2xl font-semibold">{formatMoney(product.price)}</p>
-          <p className="text-sm text-slate-600">
-            {isOutOfStock(product)
-              ? 'Out of stock'
-              : `${product.stockQuantity} in stock`}
-          </p>
+          <StockStatus quantity={product.stockQuantity} />
           <p className="text-base leading-7 text-slate-600">{product.description}</p>
           <AddToCartButton product={product} />
           <ProductRecommendations product={product} />

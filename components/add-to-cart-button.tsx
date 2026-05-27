@@ -48,9 +48,6 @@ export function AddToCartButton({ product, className = '', fullWidth = false }: 
       >
         {canAdd ? 'Add to cart' : 'Max quantity in cart'}
       </button>
-      <p className="text-sm text-slate-600">
-        {remaining} of {product.stockQuantity} available
-      </p>
     </div>
   );
 }

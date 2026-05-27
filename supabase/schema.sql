@@ -17,8 +17,29 @@ create table if not exists orders (
   shipping_address text not null,
   total numeric not null,
   items jsonb not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  stripe_session_id text unique,
+  stock_decremented boolean not null default false
 );
+
+create or replace function decrement_product_stock(p_product_id uuid, p_quantity integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_quantity <= 0 then
+    return;
+  end if;
+
+  update products
+  set stock_quantity = greatest(0, stock_quantity - p_quantity)
+  where id = p_product_id;
+end;
+$$;
+
+grant execute on function decrement_product_stock(uuid, integer) to authenticated;
 
 alter table products enable row level security;
 alter table orders enable row level security;
@@ -34,6 +55,11 @@ create policy "Allow public insert on orders"
 create policy "Users can read own orders"
   on orders for select
   using (auth.jwt() ->> 'email' = email);
+
+create policy "Users can update own orders"
+  on orders for update
+  using (auth.jwt() ->> 'email' = email)
+  with check (auth.jwt() ->> 'email' = email);
 
 insert into products (name, description, price, category, image_url, stock_quantity) values
   ('Cloud Tee', 'Soft heavyweight tee for everyday wear.', 28, 'Tops', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80', 25),

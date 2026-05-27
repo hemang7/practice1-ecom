@@ -42,8 +42,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const previousUserIdRef = useRef<string | null>(null);
 
   const clearCart = useCallback(() => {
-    setItems([]);
     window.localStorage.removeItem(STORAGE_KEY);
+    setItems([]);
   }, []);
 
   // Load cart from localStorage on startup (regardless of auth state).
@@ -62,6 +62,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Persist cart for all users (including guests) so it survives redirects.
   useEffect(() => {
     if (!isReady) return;
+    if (items.length === 0) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, isReady]);
 

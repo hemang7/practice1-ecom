@@ -1,48 +1,21 @@
-import { createClient } from '@/lib/supabase/server';
+import {
+  computeOrderTotals,
+  parseOrderItemsJson,
+  toCartItemsForStorage,
+} from '@/lib/order-utils';
 import { getStripe } from '@/lib/stripe';
-
-type MinimalOrderItem = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
+import { markOrderStockDecremented } from '@/lib/orders-server';
+import { decrementStockForOrder } from '@/lib/stock';
+import { createClient } from '@/lib/supabase/server';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function computeTotals(items: MinimalOrderItem[]) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal > 0 ? 6 : 0;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
-  return { subtotal, shipping, tax, total };
-}
-
-function parseItemsJson(itemsJson: string): MinimalOrderItem[] | null {
-  try {
-    const parsed = JSON.parse(itemsJson) as unknown;
-    if (!Array.isArray(parsed)) return null;
-
-    const items = parsed.filter((item) => {
-      return (
-        item &&
-        typeof item === 'object' &&
-        typeof (item as any).id === 'string' &&
-        typeof (item as any).name === 'string' &&
-        typeof (item as any).price === 'number' &&
-        typeof (item as any).quantity === 'number' &&
-        (item as any).price >= 0 &&
-        (item as any).quantity > 0
-      );
-    }) as MinimalOrderItem[];
-
-    return items.length ? items : null;
-  } catch {
-    return null;
-  }
-}
+type ExistingOrderRow = {
+  id: string;
+  stock_decremented?: boolean | null;
+};
 
 export async function POST(request: Request) {
   const supabase = createClient();
@@ -55,21 +28,27 @@ export async function POST(request: Request) {
     return Response.json({ message: 'Invalid JSON body.' }, { status: 400 });
   }
 
-  const payload = body as Record<string, unknown>;
-  const sessionId = payload?.session_id;
+  const sessionId = (body as Record<string, unknown>)?.session_id;
 
   if (!isNonEmptyString(sessionId)) {
     return Response.json({ message: 'Missing session_id.' }, { status: 400 });
   }
 
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  const paymentStatus = (session as any)?.payment_status as string | undefined;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (paymentStatus !== 'paid') {
+  if (!user?.email) {
+    return Response.json({ message: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+  if (session.payment_status !== 'paid') {
     return Response.json({ message: 'Payment not completed.' }, { status: 400 });
   }
 
-  const metadata = (session as any)?.metadata as Record<string, string> | null | undefined;
+  const metadata = session.metadata;
   if (!metadata) {
     return Response.json({ message: 'Missing session metadata.' }, { status: 400 });
   }
@@ -88,45 +67,95 @@ export async function POST(request: Request) {
     return Response.json({ message: 'Missing required metadata.' }, { status: 400 });
   }
 
-  const items = parseItemsJson(itemsJson);
+  const items = parseOrderItemsJson(itemsJson);
   if (!items) {
     return Response.json({ message: 'Invalid items_json.' }, { status: 400 });
   }
 
-  const totals = computeTotals(items);
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('id, stock_decremented')
+    .eq('stripe_session_id', sessionId)
+    .maybeSingle();
 
-  // Ensure email matches the authenticated user for RLS.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const email = user?.email ?? customerEmail;
+  const existing = existingOrder as ExistingOrderRow | null;
 
-  if (!isNonEmptyString(email)) {
-    return Response.json({ message: 'Unauthorized.' }, { status: 401 });
+  if (existing?.id) {
+    if (existing.stock_decremented) {
+      return Response.json({ orderId: existing.id });
+    }
+
+    const stockResult = await decrementStockForOrder(supabase, items);
+    if (!stockResult.ok) {
+      return Response.json(
+        {
+          message: `Order saved but stock update failed: ${stockResult.message}. Add SUPABASE_SERVICE_ROLE_KEY to .env or run supabase/add-order-stock-email.sql.`,
+        },
+        { status: 500 },
+      );
+    }
+
+    await markOrderStockDecremented(supabase, existing.id);
+
+    return Response.json({ orderId: existing.id });
   }
 
+  const totals = computeOrderTotals(items);
   const createdAt =
-    typeof (session as any)?.created === 'number'
-      ? new Date((session as any).created * 1000).toISOString()
+    typeof session.created === 'number'
+      ? new Date(session.created * 1000).toISOString()
       : new Date().toISOString();
 
-  const { data, error } = await supabase
+  const { data: order, error: insertError } = await supabase
     .from('orders')
     .insert({
       customer_name: customerName,
-      email,
+      email: user.email,
       shipping_address: shippingAddress,
       total: totals.total,
-      items,
+      items: toCartItemsForStorage(items),
       created_at: createdAt,
+      stripe_session_id: sessionId,
+      stock_decremented: false,
     })
     .select('id')
     .single();
 
-  if (error) {
-    return Response.json({ message: error.message }, { status: 500 });
+  if (insertError) {
+    if (insertError.code === '23505') {
+      const { data: duplicateOrder } = await supabase
+        .from('orders')
+        .select('id, stock_decremented')
+        .eq('stripe_session_id', sessionId)
+        .maybeSingle();
+
+      const duplicate = duplicateOrder as ExistingOrderRow | null;
+      if (duplicate?.id) {
+        if (!duplicate.stock_decremented) {
+          const stockResult = await decrementStockForOrder(supabase, items);
+          if (stockResult.ok) {
+            await markOrderStockDecremented(supabase, duplicate.id);
+          }
+        }
+        return Response.json({ orderId: duplicate.id });
+      }
+    }
+
+    return Response.json({ message: insertError.message }, { status: 500 });
   }
 
-  return Response.json({ orderId: data.id });
-}
+  const stockResult = await decrementStockForOrder(supabase, items);
+  if (!stockResult.ok) {
+    return Response.json(
+      {
+        message: `Order saved but stock update failed: ${stockResult.message}. Add SUPABASE_SERVICE_ROLE_KEY to .env or run supabase/add-order-stock-email.sql.`,
+        orderId: order.id,
+      },
+      { status: 500 },
+    );
+  }
 
+  await markOrderStockDecremented(supabase, order.id);
+
+  return Response.json({ orderId: order.id });
+}
