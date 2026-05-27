@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Simple Shop Architecture</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Simple Shop Architecture</h1>
+</header>
+<h1 id="simple-shop-technical-architecture-documentation">Simple Shop —
+Technical Architecture Documentation</h1>
+<p><strong>Project:</strong> <code>next14-ecommerce-starter</code><br />
+<strong>Stack:</strong> Next.js 14 (App Router), React 18, TypeScript,
+Tailwind CSS, Supabase (Auth + Postgres), Stripe Checkout, OpenAI
+(<code>gpt-4o-mini</code>)<br />
+<strong>Purpose:</strong> Architecture review reference — exhaustive
+inventory of structure, APIs, data, flows, env, debt, and Azure ops.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#1-system-overview">System Overview</a></li>
+<li><a href="#2-full-project-structure">Full Project Structure</a></li>
+<li><a href="#3-pages--routes-ui">Pages &amp; Routes (UI)</a></li>
+<li><a href="#4-api-routes">API Routes</a></li>
+<li><a href="#5-database-schema">Database Schema</a></li>
+<li><a href="#6-authentication-flow">Authentication Flow</a></li>
+<li><a href="#7-cart-state-management">Cart State Management</a></li>
+<li><a href="#8-payment-flow">Payment Flow</a></li>
+<li><a href="#9-ai-recommendations-flow">AI Recommendations
+Flow</a></li>
+<li><a href="#10-stock-management">Stock Management</a></li>
+<li><a href="#11-environment-variables">Environment Variables</a></li>
+<li><a href="#12-known-limitations--technical-debt">Known Limitations
+&amp; Technical Debt</a></li>
+<li><a href="#13-azure-deployment-configuration">Azure Deployment
+Configuration</a></li>
+</ol>
+<hr />
+<h2 id="system-overview">1. System Overview</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 66%" />
+</colgroup>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI</td>
+<td>Server + client components, Tailwind</td>
+</tr>
+<tr>
+<td>Catalog</td>
+<td>Supabase <code>products</code>, fetched via API or server
+<code>getProducts()</code></td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>Supabase email/password, cookie sessions via
+<code>@supabase/ssr</code></td>
+</tr>
+<tr>
+<td>Cart</td>
+<td>React Context + <code>localStorage</code></td>
+</tr>
+<tr>
+<td>Checkout</td>
+<td>Stripe Checkout Session (server-created redirect URL)</td>
+</tr>
+<tr>
+<td>Order persistence</td>
+<td>Client calls <code>POST /api/stripe-success</code> after redirect
+(no webhooks)</td>
+</tr>
+<tr>
+<td>Stock decrement</td>
+<td>Service-role admin client or RPC fallback</td>
+</tr>
+<tr>
+<td>Recommendations</td>
+<td><code>POST /api/recommendations</code> → OpenAI Chat
+Completions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>High-level data flow:</strong> Browser ↔︎ Next.js App ↔︎
+Supabase / Stripe / OpenAI. Cart persists in <code>localStorage</code>.
+Stripe redirects back to <code>/success</code>, which triggers order
+save and stock decrement.</p>
+<hr />
+<h2 id="full-project-structure">2. Full Project Structure</h2>
+<p>Every application file (excluding <code>.git/</code>,
+<code>node_modules/</code>, <code>.next/</code>).</p>
+<pre><code>next14-ecommerce-starter/
+├── .env.example              # Template for required environment variables
+├── .gitignore                # Ignores node_modules, .next, .env.local
+├── README.md                 # Setup, Supabase, Stripe, run instructions
+├── middleware.ts             # Next.js middleware entry; delegates to Supabase session refresh
+├── next.config.mjs           # Next image remotePatterns for images.unsplash.com
+├── next-env.d.ts             # Auto-generated Next.js TypeScript references
+├── package.json              # Dependencies and npm scripts (dev/build/start/lint)
+├── package-lock.json         # Locked dependency tree
+├── postcss.config.js         # PostCSS with Tailwind
+├── tailwind.config.ts        # Tailwind content paths (app, components, lib)
+├── tsconfig.json             # Strict TS, path alias @/* → project root
+│
+├── app/                      # Next.js App Router
+│   ├── globals.css           # Tailwind directives, light color-scheme, base link styles
+│   ├── layout.tsx            # Root layout: Inter font, AuthProvider, CartProvider, Navbar
+│   ├── page.tsx              # Home: hero + ProductBrowser
+│   │
+│   ├── api/                  # Route Handlers (REST-style JSON APIs)
+│   │   ├── checkout/route.ts
+│   │   ├── orders/route.ts
+│   │   ├── products/route.ts
+│   │   ├── products/[id]/route.ts
+│   │   ├── recommendations/route.ts
+│   │   └── stripe-success/route.ts
+│   │
+│   ├── cart/page.tsx         # Cart page: line items + CartSummary
+│   ├── cancel/page.tsx       # Static “payment cancelled” page
+│   ├── success/page.tsx      # Post-payment: clear cart, POST stripe-success
+│   ├── order-summary/page.tsx # Checkout form; requires login; starts Stripe
+│   ├── orders/page.tsx       # Order history (client fetch GET /api/orders)
+│   ├── login/page.tsx        # Login wrapper around AuthForm
+│   ├── signup/page.tsx       # Signup wrapper around AuthForm
+│   │
+│   └── products/[id]/
+│       ├── page.tsx          # Server component: getProductById → ProductDetail
+│       ├── loading.tsx       # Route loading UI (ProductDetailSkeleton)
+│       └── not-found.tsx     # 404 UI for unknown product IDs
+│
+├── components/
+│   ├── add-to-cart-button.tsx    # Stock-aware add button; disabled states
+│   ├── auth-form.tsx             # Login/signup form (Supabase client auth)
+│   ├── auth-provider.tsx         # Auth context: user, isReady, signOut
+│   ├── cart-context.tsx          # Cart state, localStorage, totals, stock enforcement
+│   ├── cart-item-row.tsx         # Single cart line: qty input, remove
+│   ├── cart-summary.tsx          # Sidebar totals + link to order summary
+│   ├── navbar.tsx                # Nav links, cart count, auth UI, logout
+│   ├── product-browser.tsx       # Home catalog: fetch, search, category filter
+│   ├── product-card.tsx          # Product tile + StockStatus + AddToCartButton
+│   ├── product-detail.tsx        # PDP: image, price, StockStatus, recommendations
+│   ├── product-recommendations.tsx # Client: fetch products + POST recommendations
+│   ├── skeleton.tsx              # Loading skeletons
+│   └── stock-status.tsx          # Out of Stock / Only X left / In Stock badge
+│
+├── lib/
+│   ├── money.ts                  # formatMoney() — USD Intl.NumberFormat
+│   ├── order-utils.ts            # Totals, parse Stripe metadata items
+│   ├── orders-server.ts          # markOrderStockDecremented()
+│   ├── products.ts               # getProducts(), getProductById()
+│   ├── stock.ts                  # Stock display, cart rules, decrementStockForOrder()
+│   ├── stripe.ts                 # getStripe(), getAppBaseUrl()
+│   ├── stripe-client.ts          # loadStripe() singleton (unused in checkout flow)
+│   ├── supabase.ts               # Deprecated getSupabase() wrapper
+│   ├── types.ts                  # Product, CartItem, Order types
+│   └── supabase/
+│       ├── admin.ts              # Service-role Supabase client (server-only)
+│       ├── client.ts             # Browser Supabase client
+│       ├── middleware.ts         # updateSession(): refresh cookies, protect /orders
+│       └── server.ts             # Server Supabase client (cookies)
+│
+└── supabase/                   # SQL migrations (run manually in Supabase SQL editor)
+    ├── schema.sql
+    ├── add-order-stock-email.sql
+    ├── add-stock-quantity.sql
+    ├── auth-orders-policy.sql
+    └── fix-canvas-tote-image.sql</code></pre>
+<hr />
+<h2 id="pages-routes-ui">3. Pages &amp; Routes (UI)</h2>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 19%" />
+<col style="width: 19%" />
+<col style="width: 41%" />
+</colgroup>
+<thead>
+<tr>
+<th>Path</th>
+<th>Type</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>Client-heavy</td>
+<td>Public</td>
+<td>Product catalog with search/filter</td>
+</tr>
+<tr>
+<td><code>/products/[id]</code></td>
+<td>Server + client</td>
+<td>Public</td>
+<td>Product detail; SSR product fetch</td>
+</tr>
+<tr>
+<td><code>/cart</code></td>
+<td>Client</td>
+<td>Public</td>
+<td>Cart management</td>
+</tr>
+<tr>
+<td><code>/order-summary</code></td>
+<td>Client</td>
+<td>Login required (client redirect)</td>
+<td>Customer form + Stripe redirect</td>
+</tr>
+<tr>
+<td><code>/success</code></td>
+<td>Client</td>
+<td>Session needed for order save</td>
+<td>Payment confirmation</td>
+</tr>
+<tr>
+<td><code>/cancel</code></td>
+<td>Static</td>
+<td>Public</td>
+<td>Cancel messaging</td>
+</tr>
+<tr>
+<td><code>/login</code></td>
+<td>Client</td>
+<td>Public</td>
+<td>Email/password login</td>
+</tr>
+<tr>
+<td><code>/signup</code></td>
+<td>Client</td>
+<td>Public</td>
+<td>Email/password signup</td>
+</tr>
+<tr>
+<td><code>/orders</code></td>
+<td>Client</td>
+<td>Middleware + session</td>
+<td>Order history</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="api-routes">4. API Routes</h2>
+<h3 id="get-apiproducts">GET /api/products</h3>
+<table>
+<tbody>
+<tr>
+<td><strong>Auth</strong></td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ products: Product[] }</code> or
+<code>500</code> <code>{ message }</code></td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>Supabase <code>products</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="get-apiproductsid">GET /api/products/[id]</h3>
+<table>
+<tbody>
+<tr>
+<td><strong>Params</strong></td>
+<td><code>id</code> — product UUID</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ product }</code>, <code>404</code>,
+<code>500</code></td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>Supabase</td>
+</tr>
+</tbody>
+</table>
+<h3 id="get-apiorders">GET /api/orders</h3>
+<table>
+<tbody>
+<tr>
+<td><strong>Auth</strong></td>
+<td>Supabase session (<code>401</code> if missing)</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ orders: Order[] }</code></td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>Supabase, filtered by <code>email = user.email</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="post-apiorders">POST /api/orders</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr>
+<td><strong>Auth</strong></td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Body</strong></td>
+<td><code>{ items: CartItem[], customer: { name, email, address } }</code></td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ orderId, order }</code></td>
+</tr>
+<tr>
+<td><strong>Note</strong></td>
+<td>Legacy path; Stripe flow uses <code>stripe-success</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="post-apicheckout">POST /api/checkout</h3>
+<table>
+<tbody>
+<tr>
+<td><strong>Body</strong></td>
+<td><code>{ items: MinimalCartItem[], customer }</code></td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ url }</code> — Stripe Checkout URL</td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>Stripe <code>checkout.sessions.create</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stripe session:</strong> <code>mode: payment</code>, USD,
+line items + Shipping ($6) + Tax (8%). Metadata:
+<code>customer_name</code>, <code>customer_email</code>,
+<code>shipping_address</code>, <code>items_json</code>. Success URL:
+<code>/success?session_id={CHECKOUT_SESSION_ID}</code>. Cancel URL:
+<code>/cart</code>.</p>
+<h3 id="post-apistripe-success">POST /api/stripe-success</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr>
+<td><strong>Auth</strong></td>
+<td>Required</td>
+</tr>
+<tr>
+<td><strong>Body</strong></td>
+<td><code>{ session_id: string }</code></td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code> <code>{ orderId }</code></td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>Stripe retrieve session; Supabase insert/update; stock
+decrement</td>
+</tr>
+</tbody>
+</table>
+<p>Idempotent via <code>stripe_session_id</code> and
+<code>stock_decremented</code> flag.</p>
+<h3 id="post-apirecommendations">POST /api/recommendations</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr>
+<td><strong>Body</strong></td>
+<td><code>{ currentProduct, allProducts }</code> (name, category,
+description each)</td>
+</tr>
+<tr>
+<td><strong>Returns</strong></td>
+<td><code>200</code>
+<code>{ recommendations: [{ name, reason }] }</code> (max 3)</td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td>OpenAI <code>gpt-4o-mini</code> chat completions</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="database-schema">5. Database Schema</h2>
+<h3 id="table-products">Table: products</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>uuid</td>
+<td>PK, default gen_random_uuid()</td>
+</tr>
+<tr>
+<td>name</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>price</td>
+<td>numeric</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>category</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>image_url</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>stock_quantity</td>
+<td>integer</td>
+<td>NOT NULL, &gt;= 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>RLS:</strong> Public SELECT only.</p>
+<h3 id="table-orders">Table: orders</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>uuid</td>
+<td>PK</td>
+</tr>
+<tr>
+<td>customer_name</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>email</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>shipping_address</td>
+<td>text</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>total</td>
+<td>numeric</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>items</td>
+<td>jsonb</td>
+<td>NOT NULL</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td>timestamptz</td>
+<td>default now()</td>
+</tr>
+<tr>
+<td>stripe_session_id</td>
+<td>text</td>
+<td>UNIQUE</td>
+</tr>
+<tr>
+<td>stock_decremented</td>
+<td>boolean</td>
+<td>default false</td>
+</tr>
+</tbody>
+</table>
+<p><strong>RLS:</strong> Public INSERT; SELECT/UPDATE own rows by JWT
+email.</p>
+<h3 id="function-decrement_product_stockuuid-integer">Function:
+decrement_product_stock(uuid, integer)</h3>
+<p>SECURITY DEFINER; reduces stock; granted to authenticated.</p>
+<hr />
+<h2 id="authentication-flow">6. Authentication Flow</h2>
+<p><strong>Signup:</strong> <code>supabase.auth.signUp</code> → session
+or email confirmation message.</p>
+<p><strong>Login:</strong> <code>signInWithPassword</code> → redirect
+(default <code>/orders</code>) + <code>router.refresh()</code>.</p>
+<p><strong>Logout:</strong> <code>signOut</code> → clear user →
+<strong>cart cleared</strong> on user→null transition.</p>
+<p><strong>Session:</strong> HTTP cookies via
+<code>@supabase/ssr</code>. Middleware refreshes session; protects
+<code>/orders</code>.</p>
+<p><strong>Clients:</strong> <code>lib/supabase/client.ts</code>
+(browser), <code>server.ts</code> (RSC/API),
+<code>middleware.ts</code>.</p>
+<p><code>/order-summary</code> uses client-side redirect only (not
+middleware).</p>
+<hr />
+<h2 id="cart-state-management">7. Cart State Management</h2>
+<p><strong>Key:</strong> <code>simple-shop-cart</code> in
+<code>localStorage</code>.</p>
+<p><strong>Item shape:</strong> Full <code>Product</code> fields +
+<code>quantity</code> (includes snapshot
+<code>stockQuantity</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mount</td>
+<td>Load from localStorage</td>
+</tr>
+<tr>
+<td>items change</td>
+<td>Persist JSON (remove key if empty)</td>
+</tr>
+<tr>
+<td>Logout</td>
+<td>clearCart()</td>
+</tr>
+<tr>
+<td>Login</td>
+<td>Cart preserved</td>
+</tr>
+<tr>
+<td>/success</td>
+<td>clearCart() immediately</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Totals:</strong> subtotal; shipping $6 if subtotal &gt; 0;
+tax 8%; total = sum.</p>
+<p><strong>sessionStorage:</strong> <code>order-saved-{sessionId}</code>
+prevents duplicate stripe-success calls.</p>
+<hr />
+<h2 id="payment-flow">8. Payment Flow</h2>
+<ol type="1">
+<li>User adds items (localStorage-backed cart).</li>
+<li><code>/order-summary</code> — must be logged in.</li>
+<li><code>POST /api/checkout</code> → Stripe session URL.</li>
+<li>Browser redirects to Stripe Checkout.</li>
+<li>On pay → <code>/success?session_id=...</code></li>
+<li>Cart cleared immediately.</li>
+<li><code>POST /api/stripe-success</code> — verify paid, insert order,
+decrement stock.</li>
+<li><code>/orders</code> shows history via
+<code>GET /api/orders</code>.</li>
+</ol>
+<p><strong>No Stripe webhooks</strong> — client must reach success
+page.</p>
+<hr />
+<h2 id="ai-recommendations-flow">9. AI Recommendations Flow</h2>
+<ol type="1">
+<li>PDP loads <code>ProductRecommendations</code>.</li>
+<li><code>GET /api/products</code> → filter out current product.</li>
+<li><code>POST /api/recommendations</code> with current + all
+others.</li>
+</ol>
+<p><strong>System prompt:</strong></p>
+<pre><code>You are a smart ecommerce recommendation engine.
+Recommend 2-3 complementary products from the provided allProducts list that pair well with the currentProduct.
+Only recommend products that exist in allProducts (use their exact name values).
+Return JSON with this exact structure: { &quot;recommendations&quot;: [ { &quot;name&quot;: string, &quot;reason&quot;: string } ] }</code></pre>
+<p><strong>OpenAI:</strong> <code>gpt-4o-mini</code>, temperature 0.7,
+<code>response_format: json_object</code>.</p>
+<p><strong>Response:</strong> Validated names only; max 3; errors fail
+silently on UI.</p>
+<hr />
+<h2 id="stock-management">10. Stock Management</h2>
+<table>
+<thead>
+<tr>
+<th>stockQuantity</th>
+<th>Display</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Out of Stock</td>
+</tr>
+<tr>
+<td>1–10</td>
+<td>Only X left</td>
+</tr>
+<tr>
+<td>11+</td>
+<td>In Stock badge</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decrement:</strong> Admin service role (preferred) or RPC
+fallback after order save.</p>
+<hr />
+<h2 id="environment-variables">11. Environment Variables</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 23%" />
+</colgroup>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Exposure</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NEXT_PUBLIC_SUPABASE_URL</td>
+<td>Yes</td>
+<td>Public</td>
+<td>Supabase URL</td>
+</tr>
+<tr>
+<td>NEXT_PUBLIC_SUPABASE_ANON_KEY</td>
+<td>Yes</td>
+<td>Public</td>
+<td>Anon key</td>
+</tr>
+<tr>
+<td>SUPABASE_SERVICE_ROLE_KEY</td>
+<td>Strongly recommended</td>
+<td>Server only</td>
+<td>Stock updates</td>
+</tr>
+<tr>
+<td>STRIPE_SECRET_KEY</td>
+<td>Yes</td>
+<td>Server</td>
+<td>Checkout</td>
+</tr>
+<tr>
+<td>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</td>
+<td>Optional</td>
+<td>Public</td>
+<td>stripe-client (unused)</td>
+</tr>
+<tr>
+<td>NEXT_PUBLIC_APP_URL</td>
+<td>Yes (prod)</td>
+<td>Public</td>
+<td>Redirect URLs</td>
+</tr>
+<tr>
+<td>OPENAI_API_KEY</td>
+<td>Yes (recs)</td>
+<td>Server</td>
+<td>OpenAI</td>
+</tr>
+<tr>
+<td>OPEN_AI_API_KEY</td>
+<td>Optional</td>
+<td>Server</td>
+<td>Alias</td>
+</tr>
+<tr>
+<td>VERCEL_URL</td>
+<td>Auto</td>
+<td>Server</td>
+<td>Fallback base URL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="known-limitations-technical-debt">12. Known Limitations &amp;
+Technical Debt</h2>
+<ul>
+<li>No Stripe webhooks — order save depends on client
+<code>/success</code> call.</li>
+<li>Order email stored as logged-in user email, not checkout form
+email.</li>
+<li>Public <code>POST /api/orders</code> and public orders INSERT
+policy.</li>
+<li>Client-trusted prices at checkout; no server cart
+re-validation.</li>
+<li>Stale stockQuantity in localStorage cart items.</li>
+<li><code>lib/stripe-client.ts</code> unused;
+<code>lib/supabase.ts</code> deprecated.</li>
+<li>Hardcoded $6 shipping and 8% tax in multiple places.</li>
+<li>No rate limiting on APIs.</li>
+<li>Azure/CI not in repo.</li>
+</ul>
+<hr />
+<h2 id="azure-deployment-configuration">13. Azure Deployment
+Configuration</h2>
+<p><strong>Not in repository</strong> — configured via Azure CLI.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>App Service</td>
+<td>hemang-ecomm-app</td>
+</tr>
+<tr>
+<td>Resource group</td>
+<td>ecomm-app-rg</td>
+</tr>
+<tr>
+<td>URL</td>
+<td>https://hemang-ecomm-app.azurewebsites.net</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Configure settings:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">az</span> webapp config appsettings set <span class="at">--name</span> hemang-ecomm-app <span class="at">--resource-group</span> ecomm-app-rg <span class="at">--settings</span> KEY=<span class="st">&quot;value&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">az</span> webapp restart <span class="at">--name</span> hemang-ecomm-app <span class="at">--resource-group</span> ecomm-app-rg</span></code></pre></div>
+<p><strong>Expected app settings:</strong> Supabase URL/keys, OpenAI,
+Stripe, NEXT_PUBLIC_APP_URL, SUPABASE_SERVICE_ROLE_KEY.</p>
+<p>Redeploy via Azure Portal Deployment Center, Git push, or ZIP deploy
+(not codified in repo).</p>
+<hr />
+<h2 id="appendix-npm-scripts">Appendix: npm Scripts</h2>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dev</td>
+<td>next dev</td>
+</tr>
+<tr>
+<td>build</td>
+<td>next build</td>
+</tr>
+<tr>
+<td>start</td>
+<td>next start</td>
+</tr>
+<tr>
+<td>lint</td>
+<td>next lint</td>
+</tr>
+</tbody>
+</table>
+<h2 id="appendix-dependencies">Appendix: Dependencies</h2>
+<p>next ^14.2, react ^18.3, <span class="citation"
+data-cites="supabase/supabase-js">@supabase/supabase-js</span>, <span
+class="citation" data-cites="supabase/ssr">@supabase/ssr</span>, stripe,
+<span class="citation"
+data-cites="stripe/stripe-js">@stripe/stripe-js</span>, tailwindcss.</p>
+</body>
+</html>
